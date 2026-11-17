@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Earthquake Pipeline Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; background: #f5f6f8; color: #222; }
+  header { background: #1f3a5f; color: #fff; padding: 20px 32px; }
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 6px 0 0; opacity: .8; font-size: 14px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat, .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .stat .label { font-size: 13px; color: #666; }
+  .stat .value { font-size: 28px; font-weight: bold; margin-top: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+  th { background: #f0f2f5; }
+  @media (max-width: 800px) { .stats, .grid { grid-template-columns: 1fr 1fr; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Earthquake Activity Report</h1>
+  <p id="sub"></p>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat"><div class="label">Total earthquakes</div><div class="value" id="total"></div></div>
+    <div class="stat"><div class="label">Average magnitude</div><div class="value" id="avg"></div></div>
+    <div class="stat"><div class="label">Strongest</div><div class="value" id="max"></div></div>
+    <div class="stat"><div class="label">Tsunami alerts</div><div class="value" id="tsu"></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Earthquakes per day</h2><canvas id="dayChart"></canvas></div>
+    <div class="card"><h2>Count by magnitude</h2><canvas id="bandChart"></canvas></div>
+  </div>
+  <div class="card" style="margin-bottom:16px"><h2>Most active regions</h2><canvas id="regionChart" height="110"></canvas></div>
+  <div class="card"><h2>Top 10 strongest earthquakes</h2>
+    <table><thead><tr><th>Magnitude</th><th>Location</th><th>Time</th><th>Depth (km)</th></tr></thead>
+    <tbody id="rows"></tbody></table>
+  </div>
+</main>
+<script>
+const data = __DATA__;
+const blue = "#2f6db5";
+document.getElementById("sub").textContent =
+  "Source: USGS Earthquake API | Generated " + data.generated_at;
+document.getElementById("total").textContent = data.total_quakes;
+document.getElementById("avg").textContent = data.avg_magnitude;
+document.getElementById("max").textContent = data.max_magnitude;
+document.getElementById("tsu").textContent = data.tsunami_alerts;
+
+new Chart(document.getElementById("dayChart"), {
+  type: "line",
+  data: { labels: data.by_day.map(d => d.date),
+          datasets: [{ label: "Earthquakes", data: data.by_day.map(d => d.count),
+                       borderColor: blue, backgroundColor: blue, tension: .2 }] },
+  options: { plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById("bandChart"), {
+  type: "bar",
+  data: { labels: data.by_magnitude_band.map(b => b.band),
+          datasets: [{ data: data.by_magnitude_band.map(b => b.count), backgroundColor: blue }] },
+  options: { plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById("regionChart"), {
+  type: "bar",
+  data: { labels: data.by_region.map(r => r.region),
+          datasets: [{ data: data.by_region.map(r => r.count), backgroundColor: blue }] },
+  options: { indexAxis: "y", plugins: { legend: { display: false } } }
+});
+document.getElementById("rows").innerHTML = data.strongest.map(q =>
+  `<tr><td>${q.mag}</td><td>${q.place}</td><td>${q.time}</td><td>${q.depth_km ?? ""}</td></tr>`
+).join("");
+</script>
+</body>
+</html>
